@@ -1,22 +1,29 @@
-document.addEventListener('DOMContentLoaded', () => {
-    const STORAGE_PATH = 'slides/'; // Path di database Firebase
+// Tunggu sampai window mendeteksi Firebase, karena Firebase diload via module
+window.onload = () => {
+    // Pastikan Firebase sudah ter-load sebelum mengeksekusi script
+    if (!window.db) {
+        console.error("Firebase gagal dimuat. Periksa koneksi internet atau konfigurasi.");
+        return;
+    }
+
+    const STORAGE_PATH = 'slides/'; 
 
     /* =========================================
        LOGIKA UNTUK HALAMAN SLIDER (TV)
        ========================================= */
     const track = document.getElementById('sliderTrack');
+    let autoPlayInterval; // Variabel global untuk timer
+
     if (track) {
-        // Mendengarkan perubahan data secara REAL-TIME
         window.dbOnValue(window.dbRef(window.db, STORAGE_PATH), (snapshot) => {
             const data = snapshot.val();
             const slidesArray = data ? Object.values(data) : [];
             
-            // Bersihkan slider lama
             track.innerHTML = '';
             document.getElementById('sliderDots').innerHTML = '';
 
             if (slidesArray.length === 0) {
-                track.innerHTML = '<div class="slide"><h1>Belum ada informasi.</h1></div>';
+                track.innerHTML = '<div class="slide" style="background:#222;"><h1 style="color:white;">Belum ada informasi.</h1></div>';
                 return;
             }
 
@@ -30,8 +37,11 @@ document.addEventListener('DOMContentLoaded', () => {
                 const slide = document.createElement('div');
                 slide.classList.add('slide');
                 
-                if (data.image) {
-                    slide.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.4), rgba(0,0,0,0.4)), url('${data.image}')`;
+                // Pengecekan jika ada gambar
+                if (data.image && data.image.trim() !== "") {
+                    slide.style.backgroundImage = `linear-gradient(rgba(0,0,0,0.6), rgba(0,0,0,0.6)), url('${data.image}')`;
+                    slide.style.backgroundSize = "cover";
+                    slide.style.backgroundPosition = "center";
                 } else {
                     slide.style.backgroundColor = data.color || '#333';
                 }
@@ -53,7 +63,42 @@ document.addEventListener('DOMContentLoaded', () => {
             startSliderLogic(slidesArray.length);
         }
 
-        // ... Logika nextSlide, prevSlide, Autoplay (sama seperti sebelumnya) ...
+        // FUNGSI INI YANG SEBELUMNYA HILANG DARI KODE ANDA
+        function startSliderLogic(slideCount) {
+            let currentIndex = 0;
+            const dots = Array.from(document.getElementById('sliderDots').children);
+
+            const updateSlider = () => {
+                track.style.transform = `translateX(-${currentIndex * 100}vw)`;
+                dots.forEach(d => d.classList.remove('active'));
+                if(dots[currentIndex]) dots[currentIndex].classList.add('active');
+            };
+
+            const goToSlide = (index) => { currentIndex = index; updateSlider(); };
+            const nextSlide = () => { currentIndex = (currentIndex === slideCount - 1) ? 0 : currentIndex + 1; updateSlider(); };
+            const prevSlide = () => { currentIndex = (currentIndex === 0) ? slideCount - 1 : currentIndex - 1; updateSlider(); };
+
+            // Event listener untuk tombol next/prev
+            document.getElementById('nextBtn').onclick = () => { nextSlide(); resetAutoPlay(); };
+            document.getElementById('prevBtn').onclick = () => { prevSlide(); resetAutoPlay(); };
+
+            // Event listener untuk titik/dots
+            dots.forEach((dot, index) => {
+                dot.onclick = () => { goToSlide(index); resetAutoPlay(); };
+            });
+
+            // Autoplay (5 Detik)
+            const startAutoPlay = () => { 
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = setInterval(nextSlide, 5000); 
+            };
+            const resetAutoPlay = () => { 
+                clearInterval(autoPlayInterval); 
+                startAutoPlay(); 
+            };
+            
+            startAutoPlay();
+        }
     }
 
     /* =========================================
@@ -63,23 +108,28 @@ document.addEventListener('DOMContentLoaded', () => {
     if (cmsForm) {
         cmsForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const id = Date.now(); // Gunakan timestamp sebagai ID unik
+            const id = Date.now().toString(); // Harus string untuk Firebase ID
+
+            // Perbaikan: Pastikan elemen ada sebelum mengambil value-nya
+            const slideImageEl = document.getElementById('slideImage');
+            
             const newSlide = {
                 title: document.getElementById('slideTitle').value,
                 desc: document.getElementById('slideDesc').value,
                 color: document.getElementById('slideColor').value,
-                image: document.getElementById('slideImage').value
+                image: slideImageEl ? slideImageEl.value : "" // Aman dari error null
             };
 
-            // Simpan ke Firebase
             window.dbSet(window.dbRef(window.db, STORAGE_PATH + id), newSlide)
                 .then(() => {
                     cmsForm.reset();
                     alert("Slide Berhasil dikirim ke TV!");
+                })
+                .catch((error) => {
+                    alert("Error menyimpan: " + error.message);
                 });
         });
 
-        // Tampilkan daftar untuk dihapus
         window.dbOnValue(window.dbRef(window.db, STORAGE_PATH), (snapshot) => {
             const listContainer = document.getElementById('adminSlideList');
             listContainer.innerHTML = '<h3>Daftar Slide Aktif</h3>';
@@ -89,7 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const item = document.createElement('div');
                 item.classList.add('slide-item');
                 item.innerHTML = `
-                    <span>${data[id].title}</span>
+                    <span><strong>${data[id].title}</strong></span>
                     <button class="btn btn-danger" onclick="deleteSlide('${id}')">Hapus</button>
                 `;
                 listContainer.appendChild(item);
@@ -102,4 +152,4 @@ document.addEventListener('DOMContentLoaded', () => {
             }
         };
     }
-});
+};
