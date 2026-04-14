@@ -1,14 +1,59 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>CMS Slider Informasi</title>
+    <link rel="stylesheet" href="style.css">
+    <style>
+        body.admin-body { display: block; padding: 2rem; background: #f4f4f9; }
+        .cms-container { max-width: 800px; margin: auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 10px rgba(0,0,0,0.1); }
+        .form-group { margin-bottom: 1rem; }
+        .form-group label { font-weight: 600; margin-bottom: 5px; display: block; }
+        .form-group input, .form-group textarea, .form-group select { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 4px; font-size: 16px; }
+        .slide-list { margin-top: 2rem; border-top: 2px solid #eee; padding-top: 1rem; }
+        .slide-item { background: #f8f9fa; padding: 15px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center; border-radius: 6px; border: 1px solid #ddd; }
+        .btn-danger { background: #dc3545; padding: 8px 15px; font-size: 14px; border: none; color: white; cursor: pointer; border-radius: 4px; }
+        .btn-danger:hover { background: #c82333; }
+        .btn { display: inline-block; padding: 10px 24px; background-color: #007bff; color: white; text-decoration: none; border-radius: 5px; border: none; cursor: pointer; }
+    </style>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+        import { getDatabase, ref, set, onValue, remove } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyDmrWXZ0T2bnGc617MyVD2xSl9J5JpVx1U",
+            authDomain: "slidertv-antonius.firebaseapp.com",
+            databaseURL: "https://slidertv-antonius-default-rtdb.asia-southeast1.firebasedatabase.app",
+            projectId: "slidertv-antonius",
+            storageBucket: "slidertv-antonius.firebasestorage.app",
+            messagingSenderId: "528352311455",
+            appId: "1:528352311455:web:11b613e9bcc0b46743caaa"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        const db = getDatabase(app);
+
+        window.db = db;
+        window.dbRef = ref;
+        window.dbSet = set;
+        window.dbOnValue = onValue;
+        window.dbRemove = remove;
+    </script>
+</head>
 <body class="admin-body">
+
     <div class="cms-container">
-        <h2>🛠️ CMS Slider Informasi</h2>
-        <a href="index.html" class="btn" style="margin-bottom: 20px; display: inline-block;">Lihat Hasil Slider</a>
+        <h2>🛠️ CMS Slider TV Ruang Tunggu</h2>
+        <a href="index.html" class="btn" style="margin-bottom: 20px;">Lihat Layar TV</a>
         
         <form id="cmsForm">
             <div class="form-group">
-                <label>Pilih Tipe Informasi:</label>
-                <select id="infoType" style="width: 100%; padding: 10px; margin-bottom: 10px;">
-                    <option value="text">Teks & Deskripsi</option>
-                    <option value="image">Gambar Penuh (Poster)</option>
+                <label>Pilih Tipe Tampilan Layar:</label>
+                <select id="infoType">
+                    <option value="text">Teks & Deskripsi (Background Warna)</option>
+                    <option value="image">Gambar Penuh (Poster/Brosur)</option>
                 </select>
             </div>
 
@@ -29,22 +74,21 @@
 
             <div id="imageFields" style="display:none;">
                 <div class="form-group">
-                    <label>URL Gambar (Paste Link Gambar di sini)</label>
-                    <input type="url" id="slideImage" placeholder="https://link-gambar.com/foto.jpg">
-                    <small>*Pastikan link gambar berakhiran .jpg, .png, atau .webp</small>
+                    <label>URL Gambar (Direct Link)</label>
+                    <input type="url" id="slideImage" placeholder="https://i.imgur.com/contoh.jpg">
+                    <small style="color: #d9534f; font-weight: bold; display: block; margin-top: 5px;">*PENTING: Link wajib berakhiran .jpg atau .png!</small>
                 </div>
             </div>
 
-            <button type="submit" class="btn" style="margin-top: 10px;">Tambah Slide</button>
+            <button type="submit" class="btn" style="width: 100%; margin-top: 10px; font-size: 18px;">Kirim ke TV 🚀</button>
         </form>
 
         <div class="slide-list" id="adminSlideList">
-            <h3>Daftar Slide Aktif</h3>
+            <h3>Daftar Slide Aktif di TV</h3>
         </div>
     </div>
 
     <script>
-        // Logika sederhana untuk ganti-ganti input di form
         const infoType = document.getElementById('infoType');
         const textFields = document.getElementById('textFields');
         const imageFields = document.getElementById('imageFields');
@@ -59,5 +103,7 @@
             }
         });
     </script>
+    
     <script src="script.js"></script>
 </body>
+</html>
