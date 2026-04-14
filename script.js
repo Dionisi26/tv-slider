@@ -1,39 +1,49 @@
-document.addEventListener('DOMContentLoaded', () => {
+window.onload = () => {
+    if (!window.db) {
+        console.error("Firebase belum siap.");
+        return;
+    }
+
     const STORAGE_PATH = 'slides/';
 
     /* =========================================
-       LOGIKA UNTUK HALAMAN SLIDER (TV)
+       1. LOGIKA UNTUK LAYAR TV (index.html)
        ========================================= */
     const track = document.getElementById('sliderTrack');
+    let autoPlayInterval;
+
     if (track) {
         window.dbOnValue(window.dbRef(window.db, STORAGE_PATH), (snapshot) => {
             const data = snapshot.val();
             const slidesArray = data ? Object.values(data) : [];
+            
             track.innerHTML = '';
             document.getElementById('sliderDots').innerHTML = '';
 
             if (slidesArray.length === 0) {
-                track.innerHTML = '<div class="slide"><h1>Belum ada informasi.</h1></div>';
+                track.innerHTML = '<div class="slide" style="background:#000;"><h1 style="color:white;">Belum ada informasi yang ditampilkan.</h1></div>';
                 return;
             }
+
             renderSlides(slidesArray);
         });
 
         function renderSlides(slidesArray) {
             const dotsContainer = document.getElementById('sliderDots');
+            
             slidesArray.forEach((data, index) => {
                 const slide = document.createElement('div');
                 slide.classList.add('slide');
                 
-                // LOGIKA BARU: Jika ada gambar, tampilkan gambar penuh tanpa kotak teks
-                if (data.image && data.image.trim() !== "") {
+                if (data.type === 'image' && data.image) {
+                    // Tampilkan Gambar Penuh
                     slide.style.backgroundImage = `url('${data.image}')`;
-                    slide.style.backgroundSize = "contain"; // "contain" agar gambar tidak terpotong, "cover" untuk memenuhi layar
+                    slide.style.backgroundSize = "contain"; 
                     slide.style.backgroundRepeat = "no-repeat";
                     slide.style.backgroundPosition = "center";
-                    slide.style.backgroundColor = "#000"; // Background hitam jika gambar tidak pas
+                    slide.style.backgroundColor = "#000000"; // Hitam di sisi kosong
                 } else {
-                    // Jika tidak ada gambar, tampilkan teks dengan background warna
+                    // Tampilkan Teks
                     slide.style.backgroundColor = data.color || '#333';
                     slide.innerHTML = `
                         <div class="slide-content">
@@ -42,6 +52,7 @@ document.addEventListener('DOMContentLoaded', () => {
                         </div>
                     `;
                 }
+
                 track.appendChild(slide);
 
                 const dot = document.createElement('div');
@@ -49,67 +60,107 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (index === 0) dot.classList.add('active');
                 dotsContainer.appendChild(dot);
             });
-            startSlider(slidesArray.length);
+
+            startSliderLogic(slidesArray.length);
         }
 
-        function startSlider(count) {
-            let index = 0;
-            const dots = document.querySelectorAll('.dot');
-            setInterval(() => {
-                index = (index + 1) % count;
-                track.style.transform = `translateX(-${index * 100}vw)`;
+        function startSliderLogic(slideCount) {
+            let currentIndex = 0;
+            const dots = Array.from(document.getElementById('sliderDots').children);
+
+            const updateSlider = () => {
+                track.style.transform = `translateX(-${currentIndex * 100}vw)`;
                 dots.forEach(d => d.classList.remove('active'));
-                dots[index].classList.add('active');
-            }, 5000); // Ganti slide setiap 5 detik
+                if(dots[currentIndex]) dots[currentIndex].classList.add('active');
+            };
+
+            const goToSlide = (index) => { currentIndex = index; updateSlider(); resetAutoPlay(); };
+            const nextSlide = () => { currentIndex = (currentIndex === slideCount - 1) ? 0 : currentIndex + 1; updateSlider(); };
+            const prevSlide = () => { currentIndex = (currentIndex === 0) ? slideCount - 1 : currentIndex - 1; updateSlider(); };
+
+            const nextBtn = document.getElementById('nextBtn');
+            const prevBtn = document.getElementById('prevBtn');
+            if(nextBtn) nextBtn.onclick = () => { nextSlide(); resetAutoPlay(); };
+            if(prevBtn) prevBtn.onclick = () => { prevSlide(); resetAutoPlay(); };
+
+            dots.forEach((dot, index) => {
+                dot.onclick = () => goToSlide(index);
+            });
+
+            const startAutoPlay = () => { 
+                clearInterval(autoPlayInterval);
+                autoPlayInterval = setInterval(nextSlide, 7000); // Ganti tiap 7 detik
+            };
+            const resetAutoPlay = () => { 
+                clearInterval(autoPlayInterval); 
+                startAutoPlay(); 
+            };
+            
+            startAutoPlay();
         }
     }
 
     /* =========================================
-       LOGIKA UNTUK HALAMAN ADMIN
+       2. LOGIKA UNTUK CMS ADMIN (admin.html)
        ========================================= */
     const cmsForm = document.getElementById('cmsForm');
     if (cmsForm) {
         cmsForm.addEventListener('submit', (e) => {
             e.preventDefault();
-            const id = Date.now();
+            const id = Date.now().toString();
             const type = document.getElementById('infoType').value;
-            
+            let imageUrl = document.getElementById('slideImage').value;
+
+            // Fitur auto-koreksi Imgur (Jika user lupa tambah .jpg)
+            if (type === 'image' && imageUrl.includes('imgur.com') && !imageUrl.match(/\.(jpeg|jpg|gif|png)$/)) {
+                imageUrl += '.jpg'; 
+            }
+
             const newSlide = {
                 type: type,
                 title: type === 'text' ? document.getElementById('slideTitle').value : "",
                 desc: type === 'text' ? document.getElementById('slideDesc').value : "",
                 color: type === 'text' ? document.getElementById('slideColor').value : "#000000",
-                image: type === 'image' ? document.getElementById('slideImage').value : ""
+                image: type === 'image' ? imageUrl : ""
             };
 
             window.dbSet(window.dbRef(window.db, STORAGE_PATH + id), newSlide)
                 .then(() => {
-                    cmsForm.reset();
-                    alert("Berhasil dikirim ke TV!");
-                }).catch(err => alert("Gagal: " + err));
+                    document.getElementById('slideTitle').value = "";
+                    document.getElementById('slideDesc').value = "";
+                    document.getElementById('slideImage').value = "";
+                    alert("✅ Slide berhasil ditambahkan ke TV!");
+                })
+                .catch((error) => alert("Gagal: " + error.message));
         });
 
-        // Tampilkan daftar
+        // Tampilkan Daftar Slide untuk Dihapus
         window.dbOnValue(window.dbRef(window.db, STORAGE_PATH), (snapshot) => {
             const listContainer = document.getElementById('adminSlideList');
-            listContainer.innerHTML = '<h3>Daftar Slide Aktif</h3>';
+            listContainer.innerHTML = '<h3>Daftar Slide Aktif di TV</h3>';
             const data = snapshot.val();
-            for (let id in data) {
-                const item = document.createElement('div');
-                item.classList.add('slide-item');
-                const label = data[id].type === 'image' ? "🖼️ Gambar" : `📝 ${data[id].title}`;
-                item.innerHTML = `
-                    <span>${label}</span>
-                    <button class="btn btn-danger" onclick="deleteSlide('${id}')">Hapus</button>
-                `;
-                listContainer.appendChild(item);
+            
+            if(data) {
+                for (let id in data) {
+                    const item = document.createElement('div');
+                    item.classList.add('slide-item');
+                    const labelInfo = data[id].type === 'image' ? `🖼️ [GAMBAR] ${data[id].image.substring(0,30)}...` : `📝 [TEKS] ${data[id].title}`;
+                    
+                    item.innerHTML = `
+                        <span><strong>${labelInfo}</strong></span>
+                        <button class="btn btn-danger" onclick="deleteSlide('${id}')">Hapus Layar</button>
+                    `;
+                    listContainer.appendChild(item);
+                }
+            } else {
+                listContainer.innerHTML += '<p style="color:#666;">Belum ada slide aktif.</p>';
             }
         });
 
         window.deleteSlide = (id) => {
-            if(confirm("Hapus slide ini?")) {
-                window.dbSet(window.dbRef(window.db, STORAGE_PATH + id), null);
+            if(confirm("Apakah Anda yakin ingin menghapus slide ini dari layar TV?")) {
+                window.dbRemove(window.dbRef(window.db, STORAGE_PATH + id));
             }
         };
     }
-});
+};
