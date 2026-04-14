@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<script type="module">
+  // Import Firebase SDK
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+  import { getDatabase, ref, set, onValue } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-database.js";
+
+  // PASTE FIREBASE CONFIG ANDA DI SINI
+  const firebaseConfig = {
+    apiKey: "AIzaSyDmrWXZ0T2bnGc617MyVD2xSl9J5JpVx1U",
+    authDomain: "slidertv-antonius.firebaseapp.com",
+    databaseURL: "https://slidertv-antonius-default-rtdb.asia-southeast1.firebasedatabase.app",
+    projectId: "slidertv-antonius",
+    storageBucket: "slidertv-antonius.firebasestorage.app",
+    messagingSenderId: "528352311455",
+    appId: "1:528352311455:web:11b613e9bcc0b46743caaa"
+  };
+
+  // Inisialisasi Firebase
+  const app = initializeApp(firebaseConfig);
+  const db = getDatabase(app);
+
+  // Expose ke window agar bisa diakses script.js lama kita
+  window.db = db;
+  window.dbRef = ref;
+  window.dbSet = set;
+  window.dbOnValue = onValue;
+</script>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fullscreen Slider</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <a href="admin.html" class="admin-link">⚙️ Masuk ke CMS</a>
+
+    <div class="slider-container fullscreen">
+        <div class="slider-track" id="sliderTrack">
+            </div>
+
+        <button class="nav-btn prev" id="prevBtn" aria-label="Previous">&#10094;</button>
+        <button class="nav-btn next" id="nextBtn" aria-label="Next">&#10095;</button>
+
+        <div class="slider-dots" id="sliderDots"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
